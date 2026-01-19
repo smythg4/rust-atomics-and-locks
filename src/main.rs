@@ -2,14 +2,19 @@ mod channel;
 mod condvar;
 mod mutex;
 mod rwlock;
+mod semaphore;
+mod examples;
 
 pub use channel::{Receiver, Sender};
 pub use condvar::*;
 pub use mutex::Mutex;
 pub use rwlock::RwLock;
+pub use semaphore::Semaphore;
+pub use examples::*;
 
 fn main() {
-    println!("Run the tests instead.");
+    //run_ticket_sales();
+    run_dining_philosophers();
 }
 
 #[cfg(test)]

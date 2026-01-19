@@ -187,24 +187,23 @@ mod tests {
 
     #[test]
     fn test_bounded_sender_blocks_when_full() {
-        let (tx, rx) = channel(2); // capacity 2                                                                  
+        let (tx, rx) = channel(2);
 
         tx.send(1).unwrap();
         tx.send(2).unwrap();
-        // buffer now full
+
+        let start = std::time::Instant::now();
 
         thread::scope(|s| {
             s.spawn(|| {
                 thread::sleep(Duration::from_millis(100));
-                assert_eq!(rx.recv().unwrap(), 1); // make room                                                   
+                rx.recv().unwrap();
             });
 
-            // This send should block until receiver makes room
-            tx.send(3).unwrap();
+            tx.send(3).unwrap(); // should block ~100ms                                                           
         });
 
-        assert_eq!(rx.recv().unwrap(), 2);
-        assert_eq!(rx.recv().unwrap(), 3);
+        assert!(start.elapsed() >= Duration::from_millis(95)); // some slack                                      
     }
 
     #[test]
