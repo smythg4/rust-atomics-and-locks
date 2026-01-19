@@ -74,7 +74,7 @@ pub struct Receiver<T> {
 }
 
 #[derive(Debug)]
-enum ReceiverError {
+pub enum ReceiverError {
     SendersDropped,
     Empty,
 }
@@ -183,5 +183,111 @@ mod tests {
         });
 
         assert!(rx.recv().is_err());
+    }
+
+    #[test]
+    fn test_bounded_sender_blocks_when_full() {
+        let (tx, rx) = channel(2); // capacity 2                                                                  
+
+        tx.send(1).unwrap();
+        tx.send(2).unwrap();
+        // buffer now full
+
+        thread::scope(|s| {
+            s.spawn(|| {
+                thread::sleep(Duration::from_millis(100));
+                assert_eq!(rx.recv().unwrap(), 1); // make room                                                   
+            });
+
+            // This send should block until receiver makes room
+            tx.send(3).unwrap();
+        });
+
+        assert_eq!(rx.recv().unwrap(), 2);
+        assert_eq!(rx.recv().unwrap(), 3);
+    }
+
+    #[test]
+    fn test_drain_after_disconnect() {
+        let (tx, rx) = channel(4);
+
+        tx.send("a").unwrap();
+        tx.send("b").unwrap();
+        tx.send("c").unwrap();
+        drop(tx); // sender gone, but buffer has items                                                            
+
+        assert_eq!(rx.recv().unwrap(), "a");
+        assert_eq!(rx.recv().unwrap(), "b");
+        assert_eq!(rx.recv().unwrap(), "c");
+        assert!(rx.recv().is_err()); // now it's empty and disconnected                                           
+    }
+
+    #[test]
+    fn test_sender_error_on_receiver_drop() {
+        let (tx, rx) = channel::<i32>(2);
+
+        drop(rx);
+
+        let result = tx.send(1);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_ring_buffer_wraparound() {
+        let (tx, rx) = channel(3);
+
+        // Fill and drain multiple times to exercise wraparound
+        for i in 0..10 {
+            tx.send(i).unwrap();
+            assert_eq!(rx.recv().unwrap(), i);
+        }
+
+        // Fill completely, drain completely
+        tx.send(100).unwrap();
+        tx.send(101).unwrap();
+        tx.send(102).unwrap();
+
+        assert_eq!(rx.recv().unwrap(), 100);
+        assert_eq!(rx.recv().unwrap(), 101);
+        assert_eq!(rx.recv().unwrap(), 102);
+    }
+
+    #[test]
+    fn test_try_recv() {
+        let (tx, rx) = channel(2);
+
+        // Empty buffer
+        assert!(matches!(rx.try_recv(), Err(ReceiverError::Empty)));
+
+        tx.send(42).unwrap();
+        assert_eq!(rx.try_recv().unwrap(), 42);
+
+        // Empty again
+        assert!(matches!(rx.try_recv(), Err(ReceiverError::Empty)));
+
+        drop(tx);
+        assert!(matches!(rx.try_recv(), Err(ReceiverError::SendersDropped)));
+    }
+
+    #[test]
+    fn test_multiple_producers() {
+        let (tx, rx) = channel(10);
+
+        thread::scope(|s| {
+            for i in 0..5 {
+                let tx = tx.clone();
+                s.spawn(move || {
+                    tx.send(i).unwrap();
+                });
+            }
+            drop(tx); // drop original                                                                            
+
+            let mut received = Vec::new();
+            for _ in 0..5 {
+                received.push(rx.recv().unwrap());
+            }
+            received.sort();
+            assert_eq!(received, vec![0, 1, 2, 3, 4]);
+        });
     }
 }
