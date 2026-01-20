@@ -25,18 +25,18 @@ pub struct Sender<T> {
 }
 
 #[derive(Debug)]
-pub enum SenderError {
-    ReceiverDropped,
+pub enum SenderError<T> {
+    ReceiverDropped(T),
 }
 
 impl<T> Sender<T> {
-    pub fn send(&self, value: T) -> Result<(), SenderError> {
+    pub fn send(&self, value: T) -> Result<(), SenderError<T>> {
         let mut guard = self.channel.inner.lock();
         while guard.count == guard.capacity && guard.receiver_alive {
             guard = self.channel.not_full.wait(guard);
         }
         if !guard.receiver_alive {
-            return Err(SenderError::ReceiverDropped);
+            return Err(SenderError::ReceiverDropped(value));
         }
         guard.count += 1;
         let tail = guard.tail;

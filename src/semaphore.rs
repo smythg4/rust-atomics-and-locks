@@ -49,7 +49,7 @@ fn acquire_contended(state: &AtomicU32) {
     }
     let count = state.load(Relaxed);
     if count == 0 {
-        wait(&state, 0);
+        wait(state, 0);
     }
 }
 

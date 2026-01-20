@@ -1,16 +1,4 @@
-mod channel;
-mod condvar;
-mod mutex;
-mod rwlock;
-mod semaphore;
-mod examples;
-
-pub use channel::{Receiver, Sender};
-pub use condvar::*;
-pub use mutex::Mutex;
-pub use rwlock::RwLock;
-pub use semaphore::Semaphore;
-pub use examples::*;
+use atomics_and_locks::run_dining_philosophers;
 
 fn main() {
     //run_ticket_sales();
@@ -19,7 +7,7 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use atomics_and_locks::{Condvar, Mutex};
     use std::thread;
     use std::time::Duration;
     use std::time::Instant;

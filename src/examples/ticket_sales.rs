@@ -2,9 +2,9 @@
 //! Demo of semaphore use
 
 use std::cell::UnsafeCell;
+use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
-use std::sync::Arc;
 
 use crate::semaphore::Semaphore;
 
@@ -42,7 +42,7 @@ impl TicketCounter {
 }
 
 pub fn run_ticket_sales() {
-    let counter= Arc::new(TicketCounter::new(NUM_TICKETS));
+    let counter = Arc::new(TicketCounter::new(NUM_TICKETS));
 
     thread::scope(|s| {
         for id in 0..NUM_SELLERS {
@@ -74,10 +74,10 @@ pub fn run_ticket_sales() {
 }
 
 fn random_delay(min_ms: u64, max_ms: u64) {
-      let seed = std::time::SystemTime::now()                                                                    
-          .duration_since(std::time::UNIX_EPOCH)                                                                 
-          .unwrap()                                                                                              
-          .subsec_nanos() as u64;                                                                                
-      let delay = min_ms + (seed % (max_ms - min_ms));                                                           
-      thread::sleep(Duration::from_millis(delay)); 
+    let seed = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .subsec_nanos() as u64;
+    let delay = min_ms + (seed % (max_ms - min_ms));
+    thread::sleep(Duration::from_millis(delay));
 }
