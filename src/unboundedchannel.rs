@@ -203,64 +203,68 @@ mod tests {
         assert!(result.is_err());
     }
 
-#[test]                                                                                                        
-  fn test_mpmc() {                                                                                               
-      use std::collections::HashSet;                                                                             
-      use std::sync::{Arc, Mutex};                                                                               
-      use std::thread;                                                                                           
-                                                                                                                 
-      let (tx, rx) = ub_channel::<usize>();                                                                       
-                                                                                                                 
-      let num_producers = 4;                                                                                     
-      let num_consumers = 4;                                                                                     
-      let items_per_producer = 1000;                                                                             
-      let total_items = num_producers * items_per_producer;                                                      
-                                                                                                                 
-      // Track what each consumer received                                                                       
-      let received: Arc<Mutex<Vec<usize>>> = Arc::new(Mutex::new(Vec::new()));                                   
-                                                                                                                 
-      thread::scope(|s| {                                                                                        
-          // Spawn producers                                                                                     
-          for p in 0..num_producers {                                                                            
-              let tx = tx.clone();                                                                               
-              s.spawn(move || {                                                                                  
-                  for i in 0..items_per_producer {                                                               
-                      let value = p * items_per_producer + i;                                                    
-                      tx.send(value).unwrap();                                                                   
-                  }                                                                                              
-                  println!("Producer {p} sent {items_per_producer} items");                                      
-              });                                                                                                
-          }                                                                                                      
-                                                                                                                 
-          // Drop original sender so channel closes when producers finish                                        
-          drop(tx);                                                                                              
-                                                                                                                 
-          // Spawn consumers                                                                                     
-          for c in 0..num_consumers {                                                                            
-              let rx = rx.clone();                                                                               
-              let received = Arc::clone(&received);                                                              
-              s.spawn(move || {                                                                                  
-                  let mut count = 0;                                                                             
-                  while let Ok(value) = rx.recv() {                                                              
-                      received.lock().unwrap().push(value);                                                      
-                      count += 1;                                                                                
-                  }                                                                                              
-                  println!("Consumer {c} received {count} items");                                               
-              });                                                                                                
-          }                                                                                                      
-      });                                                                                                        
-                                                                                                                 
-      // Verify all items received exactly once                                                                  
-      let received = received.lock().unwrap();                                                                   
-      assert_eq!(received.len(), total_items, "Wrong number of items received");                                 
-                                                                                                                 
-      let unique: HashSet<_> = received.iter().collect();                                                        
-      assert_eq!(unique.len(), total_items, "Duplicate items detected");                                         
-                                                                                                                 
-      let expected: HashSet<_> = (0..total_items).collect();                                                     
-      let received_set: HashSet<_> = received.iter().copied().collect();                                         
-      assert_eq!(received_set, expected, "Missing or unexpected items");                                         
-                                                                                                                 
-      println!("All {total_items} items received exactly once!");                                                
-  } 
+    #[test]
+    fn test_mpmc() {
+        use std::collections::HashSet;
+        use std::sync::{Arc, Mutex};
+        use std::thread;
+
+        let (tx, rx) = ub_channel::<usize>();
+
+        let num_producers = 4;
+        let num_consumers = 4;
+        let items_per_producer = 1000;
+        let total_items = num_producers * items_per_producer;
+
+        // Track what each consumer received
+        let received: Arc<Mutex<Vec<usize>>> = Arc::new(Mutex::new(Vec::new()));
+
+        thread::scope(|s| {
+            // Spawn producers
+            for p in 0..num_producers {
+                let tx = tx.clone();
+                s.spawn(move || {
+                    for i in 0..items_per_producer {
+                        let value = p * items_per_producer + i;
+                        tx.send(value).unwrap();
+                    }
+                    println!("Producer {p} sent {items_per_producer} items");
+                });
+            }
+
+            // Drop original sender so channel closes when producers finish
+            drop(tx);
+
+            // Spawn consumers
+            for c in 0..num_consumers {
+                let rx = rx.clone();
+                let received = Arc::clone(&received);
+                s.spawn(move || {
+                    let mut count = 0;
+                    while let Ok(value) = rx.recv() {
+                        received.lock().unwrap().push(value);
+                        count += 1;
+                    }
+                    println!("Consumer {c} received {count} items");
+                });
+            }
+        });
+
+        // Verify all items received exactly once
+        let received = received.lock().unwrap();
+        assert_eq!(
+            received.len(),
+            total_items,
+            "Wrong number of items received"
+        );
+
+        let unique: HashSet<_> = received.iter().collect();
+        assert_eq!(unique.len(), total_items, "Duplicate items detected");
+
+        let expected: HashSet<_> = (0..total_items).collect();
+        let received_set: HashSet<_> = received.iter().copied().collect();
+        assert_eq!(received_set, expected, "Missing or unexpected items");
+
+        println!("All {total_items} items received exactly once!");
+    }
 }

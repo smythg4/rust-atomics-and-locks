@@ -6,3 +6,4 @@ edition = "2024"
 [dependencies]
 atomic-wait = "1.1.0"
 crossbeam-epoch = "0.9.18"
+flume = "0.12.0"
