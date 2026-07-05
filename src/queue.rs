@@ -2,7 +2,7 @@
 
 //! A lock-free queue to demonstrate RCU. Uses crossbeam-epoch for memory management.
 
-use crossbeam_epoch::{self as epoch, Atomic, Guard, Owned, Shared, unprotected};
+use crossbeam::epoch::{self as epoch, Atomic, Guard, Owned, Shared, unprotected};
 use std::mem::MaybeUninit;
 use std::sync::atomic::Ordering::{Acquire, Relaxed, Release};
 

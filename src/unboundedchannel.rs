@@ -6,7 +6,7 @@
 
 use crate::queue::Queue;
 use atomic_wait::{wait, wake_all, wake_one};
-use crossbeam_epoch as epoch;
+use crossbeam::epoch;
 use std::sync::Arc;
 use std::sync::atomic::Ordering::{Acquire, Relaxed, Release};
 use std::sync::atomic::{AtomicU32, AtomicUsize};
